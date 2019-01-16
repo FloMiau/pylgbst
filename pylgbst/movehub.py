@@ -36,12 +36,13 @@ class MoveHub(object):
     DEV_STATUS_DEVICE = 0x01
     DEV_STATUS_GROUP = 0x02
 
-    def __init__(self, connection=None):
+    def __init__(self, connection=None, is_powered_hub=False):
         log.debug('MoveHub: __init__')
         if not connection:
             connection = get_connection_auto()
 
         self.connection = connection
+        self.is_poweredup_hub = is_powered_hub
         self.info = {}
         self.devices = {}
 
@@ -83,7 +84,9 @@ class MoveHub(object):
             log.debug("Waiting for builtin devices to appear: %s", builtin_devices)
             time.sleep(0.05)
         log.warning("Got only these devices: %s", builtin_devices)
-        raise RuntimeError("Failed to obtain all builtin devices")
+
+        if not self.is_poweredup_hub:
+            raise RuntimeError("Failed to obtain all builtin devices")
 
     def _notify(self, handle, data):
         log.debug('MoveHub: _notify')
@@ -238,16 +241,18 @@ class MoveHub(object):
         # TODO: add firmware version
         log.info("%s by %s", self.info_get(INFO_DEVICE_NAME), self.info_get(INFO_MANUFACTURER))
 
-        self.__voltage = 0
 
-        def on_voltage(value):
-            self.__voltage = value
+        if not self.is_poweredup_hub:
+            self.__voltage = 0
 
-        self.voltage.subscribe(on_voltage, granularity=0)
-        while not self.__voltage:
-            time.sleep(0.05)
-        self.voltage.unsubscribe(on_voltage)
-        log.info("Voltage: %d%%", self.__voltage * 100)
+            def on_voltage(value):
+                self.__voltage = value
+
+            self.voltage.subscribe(on_voltage, granularity=0)
+            while not self.__voltage:
+                time.sleep(0.05)
+            self.voltage.unsubscribe(on_voltage)
+            log.info("Voltage: %d%%", self.__voltage * 100)
 
     def info_get(self, info_type, max_retries=30):
         log.debug('MoveHub: info_get')

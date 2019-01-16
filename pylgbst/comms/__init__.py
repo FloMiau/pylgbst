@@ -38,6 +38,7 @@ class Connection(object):
         pass
 
     def enable_notifications(self):
+        log.debug('Connection: enable_notifications')
         self.write(ENABLE_NOTIFICATIONS_HANDLE, ENABLE_NOTIFICATIONS_VALUE)
 
 

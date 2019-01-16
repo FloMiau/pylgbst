@@ -28,21 +28,25 @@ class GattoolConnection(Connection):
         adapter = self.backend()
         adapter.start()
 
-        while not self._conn_hnd:
-            log.info("Discovering devices...")
-            devices = adapter.scan(1)
-            log.debug("Devices: %s", devices)
+        if hub_mac is not None:
+            log.info("Connect to %s", hub_mac)
+            self._conn_hnd = adapter.connect(hub_mac)
+        else:
+            while not self._conn_hnd:
+                log.info("Discovering devices...")
+                devices = adapter.scan(1)
+                log.debug("Devices: %s", devices)
 
-            for dev in devices:
-                address = dev['address']
-                name = dev['name']
-                if (not hub_mac and name == LEGO_MOVE_HUB) or hub_mac == address:
-                    logging.info("Found %s at %s", name, address)
-                    self._conn_hnd = adapter.connect(address)
+                for dev in devices:
+                    address = dev['address']
+                    name = dev['name']
+                    if name == LEGO_MOVE_HUB:
+                        log.info("Found %s at %s", name, address)
+                        self._conn_hnd = adapter.connect(address)
+                        break
+
+                if self._conn_hnd:
                     break
-
-            if self._conn_hnd:
-                break
 
         return self
 

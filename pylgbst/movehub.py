@@ -72,7 +72,8 @@ class MoveHub(object):
 
     def _wait_for_devices(self):
         log.debug('MoveHub: _wait_for_devices')
-        self.connection.enable_notifications()
+        if not self.is_poweredup_hub:
+            self.connection.enable_notifications()
 
         builtin_devices = ()
         for num in range(0, 60):

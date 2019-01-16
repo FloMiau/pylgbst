@@ -249,11 +249,12 @@ class MoveHub(object):
         self.voltage.unsubscribe(on_voltage)
         log.info("Voltage: %d%%", self.__voltage * 100)
 
-    def info_get(self, info_type):
+    def info_get(self, info_type, max_retries=30):
         log.debug('MoveHub: info_get')
         self.info[info_type] = None
         self.send(MSG_DEVICE_INFO, pack("<B", info_type) + pack("<B", INFO_ACTION_GET))
-        while self.info[info_type] is None:  # FIXME: will hang forever on error
+        while self.info[info_type] is None and max_retries > 0:
             time.sleep(0.05)
+            max_retries -= 1
 
         return self.info[info_type]

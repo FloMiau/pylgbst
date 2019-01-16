@@ -60,7 +60,8 @@ class MoveHub(object):
         self.port_C = None
         self.port_D = None
 
-        self.connection.set_notify_handler(self._notify)
+        if not self.is_poweredup_hub:
+            self.connection.set_notify_handler(self._notify)
 
         self._wait_for_devices()
         self._report_status()

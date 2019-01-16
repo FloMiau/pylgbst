@@ -37,6 +37,7 @@ class MoveHub(object):
     DEV_STATUS_GROUP = 0x02
 
     def __init__(self, connection=None):
+        log.debug('MoveHub: __init__')
         if not connection:
             connection = get_connection_auto()
 
@@ -64,10 +65,12 @@ class MoveHub(object):
         self._report_status()
 
     def send(self, msg_type, payload):
+        log.debug('MoveHub: send')
         cmd = pack("<B", PACKET_VER) + pack("<B", msg_type) + payload
         self.connection.write(MOVE_HUB_HARDWARE_HANDLE, pack("<B", len(cmd) + 1) + cmd)
 
     def _wait_for_devices(self):
+        log.debug('MoveHub: _wait_for_devices')
         self.connection.enable_notifications()
 
         builtin_devices = ()
@@ -83,6 +86,7 @@ class MoveHub(object):
         raise RuntimeError("Failed to obtain all builtin devices")
 
     def _notify(self, handle, data):
+        log.debug('MoveHub: _notify')
         orig = data
 
         if handle != MOVE_HUB_HARDWARE_HANDLE:
@@ -116,6 +120,7 @@ class MoveHub(object):
             log.warning("Unhandled msg type 0x%x: %s", msg_type, str2hex(orig))
 
     def _handle_device_info(self, data):
+        log.debug('MoveHub: _handle_device_info')
         kind = usbyte(data, 3)
         if kind == 2:
             self.button.handle_port_data(data)
@@ -126,6 +131,7 @@ class MoveHub(object):
             log.warning("Unhandled device info: %s", str2hex(data))
 
     def _handle_sensor_data(self, data):
+        log.debug('MoveHub: _handle_sensor_data')
         port = usbyte(data, 3)
         if port not in self.devices:
             log.warning("Notification on port with no device: %s", PORTS[port])
@@ -135,6 +141,7 @@ class MoveHub(object):
         device.queue_port_data(data)
 
     def _handle_port_status(self, data):
+        log.debug('MoveHub: _handle_port_status')
         port = usbyte(data, 3)
         status = usbyte(data, 4)
 
@@ -155,6 +162,7 @@ class MoveHub(object):
             log.warning("Unhandled status value: 0x%x on port %s", status, PORTS[port])
 
     def _handle_port_info(self, data):
+        log.debug('MoveHub: _handle_port_info')
         port = usbyte(data, 3)
         status = usbyte(data, 4)
 
@@ -172,6 +180,7 @@ class MoveHub(object):
             del self.devices[port]
 
     def _attach_device(self, dev_type, port):
+        log.debug('MoveHub: _attach_device')
         if port in PORTS and dev_type in DEVICE_TYPES:
             log.info("Attached %s on port %s", DEVICE_TYPES[dev_type], PORTS[port])
         else:
@@ -198,6 +207,7 @@ class MoveHub(object):
             self.devices[port] = Peripheral(self, port)
 
     def _update_field(self, port):
+        log.debug('MoveHub: _update_field')
         if port == PORT_A:
             self.motor_A = self.devices[port]
         elif port == PORT_B:
@@ -220,9 +230,11 @@ class MoveHub(object):
             log.warning("Unhandled port: %s", PORTS[port])
 
     def shutdown(self):
+        log.debug('MoveHub: shutdown')
         self.send(MSG_DEVICE_SHUTDOWN, b'')
 
     def _report_status(self):
+        log.debug('MoveHub: _report_status')
         # TODO: add firmware version
         log.info("%s by %s", self.info_get(INFO_DEVICE_NAME), self.info_get(INFO_MANUFACTURER))
 
@@ -238,6 +250,7 @@ class MoveHub(object):
         log.info("Voltage: %d%%", self.__voltage * 100)
 
     def info_get(self, info_type):
+        log.debug('MoveHub: info_get')
         self.info[info_type] = None
         self.send(MSG_DEVICE_INFO, pack("<B", info_type) + pack("<B", INFO_ACTION_GET))
         while self.info[info_type] is None:  # FIXME: will hang forever on error

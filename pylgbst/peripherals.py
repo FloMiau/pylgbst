@@ -23,6 +23,7 @@ class Peripheral(object):
         :type parent: pylgbst.movehub.MoveHub
         :type port: int
         """
+        log.debug('Peripheral: __init__')
         super(Peripheral, self).__init__()
         self.parent = parent
         self.port = port
@@ -40,10 +41,12 @@ class Peripheral(object):
         return "%s on port %s" % (self.__class__.__name__, PORTS[self.port] if self.port in PORTS else self.port)
 
     def _write_to_hub(self, msg_type, params):
+        log.debug('Peripheral: _write_to_hub')
         cmd = pack("<B", self.port) + params
         self.parent.send(msg_type, cmd)
 
     def _port_subscribe(self, mode, granularity, enable):
+        log.debug('Peripheral: _port_subscribe')
         params = pack("<B", mode)
         params += pack("<H", granularity)
         params += b'\x00\x00'  # maybe also bytes of granularity
@@ -51,17 +54,21 @@ class Peripheral(object):
         self._write_to_hub(MSG_SENSOR_SUBSCRIBE, params)
 
     def started(self):
+        log.debug('Peripheral: started')
         log.debug("Peripheral Started: %s", self)
         self._working = True
 
     def finished(self):
+        log.debug('Peripheral: finished')
         log.debug("Peripheral Finished: %s", self)
         self._working = False
 
     def in_progress(self):
+        log.debug('Peripheral: in_progress')
         return bool(self._working)
 
     def subscribe(self, callback, mode, granularity=1, is_async=False):
+        log.debug('Peripheral: subscribe')
         self._port_subscription_mode = mode
         self.started()
         self._port_subscribe(self._port_subscription_mode, granularity, True)
@@ -72,6 +79,7 @@ class Peripheral(object):
             self._subscribers.add(callback)
 
     def unsubscribe(self, callback=None, is_async=False):
+        log.debug('Peripheral: unsubscribe')
         if callback in self._subscribers:
             self._subscribers.remove(callback)
 
@@ -84,20 +92,24 @@ class Peripheral(object):
             self._port_subscription_mode = None
 
     def _notify_subscribers(self, *args, **kwargs):
+        log.debug('Peripheral: _notify_subscribers')
         for subscriber in self._subscribers:
             subscriber(*args, **kwargs)
 
     def queue_port_data(self, data):
+        log.debug('Peripheral: queue_port_data')
         try:
             self._incoming_port_data.put_nowait(data)
         except queue.Full:
             log.debug("Dropped port data: %s", data)
 
     def handle_port_data(self, data):
+        log.debug('Peripheral: handle_port_data')
         log.warning("Unhandled device notification for %s: %s", self, str2hex(data[4:]))
         self._notify_subscribers(data[4:])
 
     def _queue_reader(self):
+        log.debug('Peripheral: _queue_reader')
         while True:
             data = self._incoming_port_data.get()
             try:
@@ -107,6 +119,7 @@ class Peripheral(object):
                 log.warning("Failed to handle port data by %s: %s", self, str2hex(data))
 
     def _wait_sync(self, is_async):
+        log.debug('Peripheral: _wait_sync')
         if not is_async:
             log.debug("Waiting for sync command work to finish...")
             while self.in_progress():
